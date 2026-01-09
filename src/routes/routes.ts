@@ -72,7 +72,8 @@ router.post('/', authenticate, requireRole('ADMIN'), async (req: AuthRequest, re
     const validatedData = routeSchema.parse(req.body)
 
     const route = await prisma.route.create({
-      data: validatedData,
+      // Zod ensures shape; cast for Prisma's strict RouteCreateInput
+      data: validatedData as any,
       include: {
         school: true,
         stops: { orderBy: { order: 'asc' } },

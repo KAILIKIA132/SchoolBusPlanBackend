@@ -94,6 +94,7 @@ router.post('/', authenticate, async (req, res) => {
             return res.status(403).json({ error: 'Not authorized' });
         }
         const notification = await prisma.notification.create({
+            // Zod already validates this payload; cast for Prisma's strict typing
             data: validatedData,
         });
         res.status(201).json(notification);

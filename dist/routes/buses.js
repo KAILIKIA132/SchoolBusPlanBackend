@@ -60,6 +60,7 @@ router.post('/', authenticate, requireRole('ADMIN'), async (req, res) => {
     try {
         const validatedData = busSchema.parse(req.body);
         const bus = await prisma.bus.create({
+            // Cast to any to satisfy Prisma's strict create input typing while we rely on Zod validation
             data: validatedData,
             include: {
                 school: true,

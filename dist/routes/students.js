@@ -84,6 +84,7 @@ router.post('/', authenticate, async (req, res) => {
             }
         }
         const student = await prisma.student.create({
+            // Cast to any so Prisma accepts the Zod-validated payload
             data: validatedData,
             include: {
                 parent: { include: { user: true } },

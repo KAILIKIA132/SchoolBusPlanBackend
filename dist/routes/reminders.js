@@ -73,6 +73,7 @@ router.post('/', authenticate, async (req, res) => {
             }
         }
         const reminder = await prisma.reminder.create({
+            // Cast to any to align with Prisma create input typing
             data: {
                 userId: req.user.id,
                 ...validatedData,

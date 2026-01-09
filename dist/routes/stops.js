@@ -54,6 +54,7 @@ router.post('/', authenticate, requireRole('ADMIN'), async (req, res) => {
     try {
         const validatedData = stopSchema.parse(req.body);
         const stop = await prisma.stop.create({
+            // Zod validated; cast to any for Prisma StopCreateInput
             data: validatedData,
             include: {
                 route: true,

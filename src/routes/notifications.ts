@@ -108,7 +108,8 @@ router.post('/', authenticate, async (req: AuthRequest, res) => {
     }
 
     const notification = await prisma.notification.create({
-      data: validatedData,
+      // Zod already validates this payload; cast for Prisma's strict typing
+      data: validatedData as any,
     })
 
     res.status(201).json(notification)

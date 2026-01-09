@@ -78,7 +78,8 @@ router.post('/', authenticate, requireRole('ADMIN'), async (req: AuthRequest, re
     const validatedData = schoolSchema.parse(req.body)
 
     const school = await prisma.school.create({
-      data: validatedData,
+      // Cast to any to satisfy Prisma's SchoolCreateInput typing
+      data: validatedData as any,
     })
 
     res.status(201).json(school)
