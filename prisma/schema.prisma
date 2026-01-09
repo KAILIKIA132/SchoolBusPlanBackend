@@ -1,0 +1,228 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  DRIVER
+  PARENT
+}
+
+enum TripType {
+  PICKUP
+  DROPOFF
+}
+
+enum TripStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum StudentStatus {
+  PENDING
+  ON_BUS
+  DROPPED_OFF
+  ABSENT
+  PRESENT
+}
+
+enum ReminderType {
+  PICKUP
+  DROPOFF
+}
+
+enum ReminderFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  name          String
+  role          UserRole
+  phone         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  driverProfile Driver?
+  parentProfile Parent?
+  notifications Notification[]
+  reminders     Reminder[]
+}
+
+model Driver {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  licenseNumber String   @unique
+  busId         String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bus           Bus?     @relation(fields: [busId], references: [id])
+  trips         Trip[]
+}
+
+model Parent {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  address       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  students      Student[]
+}
+
+model School {
+  id            String   @id @default(cuid())
+  name          String
+  address       String?
+  phone         String?
+  email         String?
+  latitude      Float?
+  longitude     Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  routes        Route[]
+  buses         Bus[]
+  students      Student[]
+}
+
+model Student {
+  id                    String         @id @default(cuid())
+  parentId              String
+  name                  String
+  grade                 String
+  pickupAddress         String
+  dropoffAddress        String
+  busId                 String?
+  schoolId              String?
+  status                StudentStatus  @default(PENDING)
+  pickupLatitude        Float?
+  pickupLongitude       Float?
+  dropoffLatitude       Float?
+  dropoffLongitude      Float?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  parent                Parent        @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  bus                   Bus?          @relation(fields: [busId], references: [id])
+  school                School?       @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  trips                 Trip[]
+  reminders             Reminder[]
+}
+
+model Bus {
+  id            String   @id @default(cuid())
+  busNumber     String   @unique
+  capacity      Int
+  licensePlate  String   @unique
+  routeId       String?
+  schoolId      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  school        School?  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  route         Route?   @relation(fields: [routeId], references: [id])
+  driver        Driver?
+  students      Student[]
+  trips         Trip[]
+}
+
+model Route {
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  startLocation String
+  endLocation   String
+  schoolId      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  school        School?  @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  buses         Bus[]
+  stops         Stop[]
+}
+
+model Stop {
+  id            String   @id @default(cuid())
+  routeId       String
+  name          String
+  address       String
+  latitude      Float?
+  longitude     Float?
+  order         Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  route         Route    @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  trips         Trip[]
+}
+
+model Trip {
+  id            String     @id @default(cuid())
+  busId         String
+  driverId      String
+  studentId     String
+  stopId        String
+  tripType      TripType
+  status        TripStatus @default(SCHEDULED)
+  scheduledTime DateTime
+  actualTime    DateTime?
+  notes         String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  bus           Bus       @relation(fields: [busId], references: [id])
+  driver        Driver    @relation(fields: [driverId], references: [id])
+  student       Student   @relation(fields: [studentId], references: [id])
+  stop          Stop      @relation(fields: [stopId], references: [id])
+}
+
+model Notification {
+  id            String   @id @default(cuid())
+  userId        String
+  title         String
+  message       String
+  read          Boolean  @default(false)
+  createdAt     DateTime @default(now())
+
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Reminder {
+  id            String            @id @default(cuid())
+  userId        String
+  studentId     String?
+  type          ReminderType
+  title         String
+  description   String
+  time          DateTime
+  frequency     ReminderFrequency @default(DAILY)
+  daysOfWeek    String?           // JSON string array of days (0-6, Sunday-Saturday)
+  isActive      Boolean           @default(true)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  student       Student?  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+

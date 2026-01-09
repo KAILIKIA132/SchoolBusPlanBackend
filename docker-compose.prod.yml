@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: school-transport-db-prod
+    environment:
+      POSTGRES_USER: ${DB_USER:-schooltransport}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-schooltransport}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-schooltransport}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - school-transport-network
+    # Security: don't expose database port to public in production
+    # Remove ports section if accessing only from backend container
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: school-transport-backend-prod
+    environment:
+      DATABASE_URL: postgresql://${DB_USER:-schooltransport}:${DB_PASSWORD}@db:5432/${DB_NAME:-schooltransport}?schema=public
+      PORT: ${PORT:-3001}
+      JWT_SECRET: ${JWT_SECRET}
+      FRONTEND_URL: ${FRONTEND_URL}
+      NODE_ENV: production
+    ports:
+      - "${PORT:-3001}:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - school-transport-network
+    # Run migrations and seed on first start
+    command: sh -c "npx prisma db push && npm run db:seed || true && node dist/server.js"
+
+networks:
+  school-transport-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+

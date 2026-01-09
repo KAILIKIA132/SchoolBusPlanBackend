@@ -1,0 +1,74 @@
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: school-transport-db
+    environment:
+      POSTGRES_USER: schooltransport
+      POSTGRES_PASSWORD: schooltransport123
+      POSTGRES_DB: schooltransport
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U schooltransport"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - school-transport-network
+
+  # Backend API
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: school-transport-backend
+    environment:
+      DATABASE_URL: postgresql://schooltransport:schooltransport123@db:5432/schooltransport?schema=public
+      PORT: 3001
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+      FRONTEND_URL: http://localhost:3000
+      NODE_ENV: development
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run db:generate && npm run db:push && npm run db:seed && npm run dev"
+    networks:
+      - school-transport-network
+
+  # Frontend (Next.js) - Commented out (deleted)
+  # frontend:
+  #   build:
+  #     context: ../frontend
+  #     dockerfile: Dockerfile
+  #   container_name: school-transport-frontend
+  #   environment:
+  #     NEXT_PUBLIC_API_URL: http://localhost:3001
+  #     NODE_ENV: development
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - backend
+  #   volumes:
+  #     - ../frontend:/app
+  #     - /app/node_modules
+  #     - /app/.next
+  #   command: npm run dev
+  #   networks:
+  #     - school-transport-network
+
+networks:
+  school-transport-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
+
