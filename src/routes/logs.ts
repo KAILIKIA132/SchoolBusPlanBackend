@@ -62,7 +62,7 @@ router.get('/', authenticate, requireRole('ADMIN'), async (req: AuthRequest, res
     ])
 
     // Transform to log format
-    const logs = trips.map(trip => ({
+    const logs = trips.map((trip: any) => ({
       id: trip.id,
       location: 'BUS',
       busStatus: trip.status === 'COMPLETED' ? 'PICKED' : trip.status,

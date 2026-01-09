@@ -69,7 +69,7 @@ router.get('/bus/:busId', authenticate, async (req: AuthRequest, res) => {
         include: { students: { include: { bus: true } } },
       })
 
-      const hasAccess = parent?.students.some(s => s.busId === busId)
+      const hasAccess = parent?.students.some((s: { busId: string | null }) => s.busId === busId)
       if (!hasAccess) {
         return res.status(403).json({ error: 'Not authorized to view this bus location' })
       }
