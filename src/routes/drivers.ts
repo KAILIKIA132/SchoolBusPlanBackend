@@ -33,7 +33,50 @@ router.get('/me', authenticate, requireRole('DRIVER'), async (req: AuthRequest, 
       return res.status(404).json({ error: 'Driver not found' })
     }
 
-    res.json(driver)
+    // If route has no stops, generate stops from students' pickup/dropoff locations
+    const response: any = { ...driver }
+    
+    if (driver.bus?.route && driver.bus.route.stops.length === 0 && driver.bus.students.length > 0) {
+      // Group students by pickup location to create stops
+      const locationMap = new Map<string, { 
+        address: string
+        latitude: number | null
+        longitude: number | null
+        students: any[]
+      }>()
+
+      for (const student of driver.bus.students) {
+        const key = `${student.pickupAddress}|${student.pickupLatitude}|${student.pickupLongitude}`
+        if (!locationMap.has(key)) {
+          locationMap.set(key, {
+            address: student.pickupAddress,
+            latitude: student.pickupLatitude,
+            longitude: student.pickupLongitude,
+            students: [],
+          })
+        }
+        locationMap.get(key)!.students.push(student)
+      }
+
+      // Convert to stops format
+      const generatedStops = Array.from(locationMap.entries()).map(([key, data], index) => ({
+        id: `generated-${index}`,
+        name: data.address || `Stop ${index + 1}`,
+        address: data.address,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        order: index + 1,
+        routeId: driver.bus!.route!.id,
+        studentCount: data.students.length,
+      }))
+
+      // Add generated stops to the route in response
+      if (response.bus?.route) {
+        response.bus.route.stops = generatedStops
+      }
+    }
+
+    res.json(response)
   } catch (error) {
     console.error('Error fetching driver:', error)
     res.status(500).json({ error: 'Internal server error' })
